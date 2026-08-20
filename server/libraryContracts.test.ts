@@ -22,7 +22,7 @@ describe("File yazin library contracts", () => {
     expect(cleanFileName("   ", "file-yazin")).toBe("file-yazin");
   });
 
-  it("removes OCR extraction for PDF and CBZ while allowing visual outputs from text", () => {
+  it("keeps PDF and CBZ text outputs unavailable while allowing visual outputs from text", () => {
     expect(availableConversionTargets("pdf")).not.toContain("txt");
     expect(availableConversionTargets("pdf")).not.toContain("html");
     expect(availableConversionTargets("cbz")).not.toContain("txt");
