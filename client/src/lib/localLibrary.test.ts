@@ -44,18 +44,18 @@ describe("local file history", () => {
 
   it("stores a result project with editable sources, output, settings, and a copy", async () => {
     const source = await saveLocalFile({ name: "source", extension: "pdf", mimeType: "application/pdf", byteSize: 3, blob: new Blob(["pdf"]), sourceOperation: "imported" });
-    const project = await createLocalProject({ name: "report", operation: "ocr", sourceEntryIds: [source.id], outputEntryIds: [], config: { sourceExtension: "pdf", targetExtension: "txt" } });
+    const project = await createLocalProject({ name: "report", operation: "convert", sourceEntryIds: [source.id], outputEntryIds: [], config: { sourceExtension: "txt", targetExtension: "pdf" } });
     await moveLocalEntry(source.id, project.folderEntryId ?? null);
-    const output = await saveLocalFile({ name: "report", extension: "txt", mimeType: "text/plain", byteSize: 5, blob: new Blob(["text"]), sourceOperation: "ocr", parentId: project.folderEntryId });
-    await updateLocalProject(project.id, { outputEntryIds: [output.id], ocrConfidence: 71 });
+    const output = await saveLocalFile({ name: "report", extension: "txt", mimeType: "text/plain", byteSize: 5, blob: new Blob(["text"]), sourceOperation: "converted", parentId: project.folderEntryId });
+    await updateLocalProject(project.id, { outputEntryIds: [output.id] });
     const saved = await getLocalProject(project.id);
     const copy = await duplicateLocalProject(project.id);
     const entries = await listLocalEntries();
-    expect(saved).toMatchObject({ name: "report", sourceEntryIds: [source.id], outputEntryIds: [output.id], ocrConfidence: 71 });
+    expect(saved).toMatchObject({ name: "report", operation: "convert", sourceEntryIds: [source.id], outputEntryIds: [output.id] });
     expect(entries.find((entry) => entry.id === saved?.folderEntryId)).toMatchObject({ entryType: "folder", name: "report" });
     expect(entries.find((entry) => entry.id === source.id)?.parentId).toBe(saved?.folderEntryId);
     expect(entries.find((entry) => entry.id === output.id)?.parentId).toBe(saved?.folderEntryId);
-    expect(copy).toMatchObject({ name: "report copy", operation: "ocr", ocrConfidence: 71 });
+    expect(copy).toMatchObject({ name: "report copy", operation: "convert" });
     expect(copy.folderEntryId).toBeTruthy();
     expect(copy.sourceEntryIds).not.toContain(source.id);
     expect(copy.outputEntryIds).not.toContain(output.id);

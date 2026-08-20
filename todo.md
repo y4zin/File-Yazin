@@ -43,7 +43,8 @@
 - [ ] Add clear explanations and practical examples for every split mode, merge-limit behavior, and numeric setting.
 - [ ] Enforce English-digit entry and display for numeric fields across RTL languages.
 - [ ] Add complete Persian localization with ordered RTL controls and runtime messages.
-- [ ] Replace failing TXT-to-PDF output with Unicode-safe rendered pages and add TXT-to-JPG/CBZ visual text conversions.
-- [ ] Remove all PDF/CBZ-to-TXT/HTML routes and remove OCR V2 controls and dependencies.
-- [ ] Add the @pro_hg_i Instagram link with the Yazin development attribution in the product footer.
+- [x] Replace failing TXT-to-PDF output with Unicode-safe rendered pages and add TXT-to-JPG/CBZ visual text conversions.
+- [x] Remove all PDF/CBZ-to-TXT/HTML routes and remove OCR V2 controls and dependencies.
+- [x] Add the @pro_hg_i Instagram link with the Yazin development attribution in the product footer.
+- [ ] Remove remaining OCR-specific UI copy and legacy operation logic, then verify no active OCR references remain.
 - [ ] Test the text conversions, Persian runtime selection, numeric fields, and mobile layout before saving a review checkpoint.
