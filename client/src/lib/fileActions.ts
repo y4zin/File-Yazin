@@ -1,12 +1,13 @@
-/* STYLE: Calm utility engine — clear file contracts, predictable local processing, and no hidden output. */
 import JSZip from "jszip";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import { getDocument, GlobalWorkerOptions } from "pdfjs-dist";
 import pdfWorker from "pdfjs-dist/build/pdf.worker.min.mjs?url";
+import { availableConversionTargets as availableTargets } from "@shared/conversionPolicy";
+import type { SupportedExtension as RegistryExtension } from "@shared/fileRegistry";
 
 GlobalWorkerOptions.workerSrc = pdfWorker;
 
-export type SupportedExtension = "pdf" | "cbz" | "jpg" | "txt" | "html";
+export type SupportedExtension = RegistryExtension;
 export type Artifact = { name: string; extension: SupportedExtension; mimeType: string; blob: Blob; description: string };
 
 const MIME: Record<SupportedExtension, string> = {
@@ -16,6 +17,10 @@ const MIME: Record<SupportedExtension, string> = {
   txt: "text/plain;charset=utf-8",
   html: "text/html;charset=utf-8",
 };
+
+export function availableConversionTargets(source: SupportedExtension) {
+  return availableTargets(source);
+}
 
 const stem = (name: string) => name.replace(/\.[^.]+$/, "") || "file-yazin";
 const escapeHtml = (value: string) => value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
@@ -47,10 +52,7 @@ function wrapLines(text: string, limit = 84) {
     let line = "";
     words.forEach((word) => {
       const next = line ? `${line} ${word}` : word;
-      if (next.length > limit && line) {
-        lines.push(line);
-        line = word;
-      } else line = next;
+      if (next.length > limit && line) { lines.push(line); line = word; } else line = next;
     });
     if (line) lines.push(line);
   });
@@ -65,7 +67,6 @@ async function textToPdf(text: string, title: string) {
   const pageWidth = 595;
   const pageHeight = 842;
   const margin = 54;
-  const lineHeight = 15;
   let index = 0;
   while (index < lines.length) {
     const page = pdf.addPage([pageWidth, pageHeight]);
@@ -73,7 +74,7 @@ async function textToPdf(text: string, title: string) {
     let y = pageHeight - margin - 30;
     while (index < lines.length && y > margin) {
       page.drawText(lines[index].slice(0, 115), { x: margin, y, size: 10, font, color: rgb(0.1, 0.1, 0.14) });
-      y -= lineHeight;
+      y -= 15;
       index += 1;
     }
   }
@@ -104,24 +105,6 @@ async function canvasJpg(width: number, height: number, paint: (context: CanvasR
   return blob;
 }
 
-async function textToJpg(text: string, title: string) {
-  const lines = wrapLines(text, 70).slice(0, 140);
-  const height = Math.max(600, Math.min(4800, 150 + lines.length * 28));
-  return canvasJpg(1240, height, (context) => {
-    context.fillStyle = "#f7f4ed";
-    context.fillRect(0, 0, 1240, height);
-    context.fillStyle = "#2b1b42";
-    context.font = "700 34px Arial";
-    context.fillText(title, 70, 82);
-    context.fillStyle = "#675974";
-    context.font = "18px Arial";
-    context.fillText("Created in File yazin", 70, 116);
-    context.fillStyle = "#281f33";
-    context.font = "20px Arial";
-    lines.forEach((line, index) => context.fillText(line, 70, 168 + index * 28));
-  });
-}
-
 async function imageToPdf(imageBlob: Blob, name: string) {
   const bytes = new Uint8Array(await imageBlob.arrayBuffer());
   const pdf = await PDFDocument.create();
@@ -131,33 +114,39 @@ async function imageToPdf(imageBlob: Blob, name: string) {
   const width = embedded.width * scale;
   const height = embedded.height * scale;
   page.drawImage(embedded, { x: (595 - width) / 2, y: (842 - height) / 2, width, height });
-  return artifact(name, "pdf", blobFromBytes(await pdf.save(), MIME.pdf), "Image placed on a PDF page.");
+  return artifact(name, "pdf", blobFromBytes(await pdf.save(), MIME.pdf), "JPG image placed on a PDF page.");
 }
 
 async function extractPdfText(file: File) {
-  const document = await getDocument({ data: new Uint8Array(await file.arrayBuffer()) }).promise;
+  const pdfDocument = await getDocument({ data: new Uint8Array(await file.arrayBuffer()) }).promise;
   const pages: string[] = [];
-  for (let pageNumber = 1; pageNumber <= document.numPages; pageNumber += 1) {
-    const page = await document.getPage(pageNumber);
+  for (let pageNumber = 1; pageNumber <= pdfDocument.numPages; pageNumber += 1) {
+    const page = await pdfDocument.getPage(pageNumber);
     const content = await page.getTextContent();
-    pages.push(content.items.map((item) => "str" in item ? item.str : "").join(" "));
+    pages.push(content.items.map((item) => "str" in item ? item.str : "").join(" ").trim());
   }
-  return pages.join("\n\n");
+  const text = pages.filter(Boolean).join("\n\n");
+  if (!text) throw new Error("This PDF has no selectable text layer. A scanned PDF needs OCR before it can become TXT or HTML.");
+  return text;
 }
 
-async function renderPdfPage(file: File, pageNumber = 1) {
+async function renderPdfPages(file: File, name: string) {
   const pdfDocument = await getDocument({ data: new Uint8Array(await file.arrayBuffer()) }).promise;
-  const page = await pdfDocument.getPage(Math.min(pageNumber, pdfDocument.numPages));
-  const viewport = page.getViewport({ scale: 1.8 });
-  const canvas = document.createElement("canvas");
-  canvas.width = Math.ceil(viewport.width);
-  canvas.height = Math.ceil(viewport.height);
-  const context = canvas.getContext("2d");
-  if (!context) throw new Error("Canvas rendering is unavailable in this browser.");
-  await page.render({ canvas, canvasContext: context, viewport }).promise;
-  const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, MIME.jpg, 0.9));
-  if (!blob) throw new Error("The PDF page could not be rendered as JPG.");
-  return blob;
+  const outputs: Artifact[] = [];
+  for (let index = 1; index <= pdfDocument.numPages; index += 1) {
+    const page = await pdfDocument.getPage(index);
+    const viewport = page.getViewport({ scale: 1.8 });
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.ceil(viewport.width);
+    canvas.height = Math.ceil(viewport.height);
+    const context = canvas.getContext("2d");
+    if (!context) throw new Error("Canvas rendering is unavailable in this browser.");
+    await page.render({ canvas, canvasContext: context, viewport }).promise;
+    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, MIME.jpg, 0.9));
+    if (!blob) throw new Error("A PDF page could not be rendered as JPG.");
+    outputs.push(artifact(`${name}-page-${String(index).padStart(3, "0")}`, "jpg", blob, `PDF page ${index} exported as an individual JPG.`));
+  }
+  return outputs;
 }
 
 type ArchiveImage = { name: string; blob: Blob };
@@ -188,20 +177,9 @@ async function cbzToPdf(file: File, name: string) {
 }
 
 async function pdfToCbz(file: File, name: string) {
-  const pdfDocument = await getDocument({ data: new Uint8Array(await file.arrayBuffer()) }).promise;
+  const pages = await renderPdfPages(file, name);
   const zip = new JSZip();
-  for (let index = 1; index <= pdfDocument.numPages; index += 1) {
-    const page = await pdfDocument.getPage(index);
-    const viewport = page.getViewport({ scale: 1.8 });
-    const canvas = document.createElement("canvas");
-    canvas.width = Math.ceil(viewport.width);
-    canvas.height = Math.ceil(viewport.height);
-    const context = canvas.getContext("2d");
-    if (!context) throw new Error("Canvas rendering is unavailable in this browser.");
-    await page.render({ canvas, canvasContext: context, viewport }).promise;
-    const pageBlob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, MIME.jpg, 0.9));
-    if (pageBlob) zip.file(`page-${String(index).padStart(3, "0")}.jpg`, pageBlob);
-  }
+  pages.forEach((page, index) => zip.file(`page-${String(index + 1).padStart(3, "0")}.jpg`, page.blob));
   return artifact(name, "cbz", await zip.generateAsync({ type: "blob" }), "PDF pages rendered into a CBZ archive.");
 }
 
@@ -227,10 +205,10 @@ export async function mergeFiles(files: File[], extension: SupportedExtension, o
   if (extension === "cbz") {
     for (const file of files) {
       const images = await cbzImages(file);
-    Array.from(images.entries()).forEach(([index, pageImage]) => zip.file(`${stem(file.name)}-${String(index + 1).padStart(3, "0")}.${pageImage.blob.type.includes("png") ? "png" : "jpg"}`, pageImage.blob));
+      images.forEach((pageImage, index) => zip.file(`${stem(file.name)}-${String(index + 1).padStart(3, "0")}.${pageImage.blob.type.includes("png") ? "png" : "jpg"}`, pageImage.blob));
     }
   } else {
-    Array.from(files.entries()).forEach(([index, file]) => zip.file(`image-${String(index + 1).padStart(3, "0")}.jpg`, file));
+    files.forEach((file, index) => zip.file(`image-${String(index + 1).padStart(3, "0")}.jpg`, file));
   }
   return [artifact(name, "cbz", await zip.generateAsync({ type: "blob" }), "Images combined as a CBZ archive.")];
 }
@@ -262,52 +240,39 @@ export async function splitFile(file: File, extension: SupportedExtension, outpu
 
 export async function convertFile(file: File, source: SupportedExtension, target: SupportedExtension, outputName: string): Promise<Artifact[]> {
   const name = cleanOutputName(outputName, "converted");
+  if (!availableConversionTargets(source).includes(target)) throw new Error(`.${target.toUpperCase()} is not a reliable output for .${source.toUpperCase()} files.`);
   if (source === target) return [artifact(name, target, file.slice(0, file.size, MIME[target]), "Copied without format changes.")];
   if (target === "txt") {
-    const text = source === "pdf" ? await extractPdfText(file) : source === "cbz" ? (await cbzImages(file)).map((image) => image.name).join("\n") : source === "html" ? cleanHtml(await file.text()) : `Image file: ${file.name}\nSize: ${file.size} bytes`;
-    return [artifact(name, "txt", new Blob([text], { type: MIME.txt }), "Readable text representation.")];
+    const text = source === "pdf" ? await extractPdfText(file) : source === "html" ? cleanHtml(await file.text()) : await file.text();
+    return [artifact(name, "txt", new Blob([text], { type: MIME.txt }), source === "pdf" ? "Selectable PDF text exported as TXT." : "Text exported as TXT.")];
   }
   if (target === "html") {
-    const content = source === "pdf" ? await extractPdfText(file) : source === "cbz" ? (await cbzImages(file)).map((image) => `<li>${escapeHtml(image.name)}</li>`).join("") : source === "jpg" ? `<img alt="${escapeHtml(file.name)}" src="${await blobDataUrl(file)}">` : escapeHtml(await file.text());
-    const body = source === "cbz" ? `<h1>${escapeHtml(stem(file.name))}</h1><ul>${content}</ul>` : `<pre>${content}</pre>`;
-    return [artifact(name, "html", new Blob([`<!doctype html><html><meta charset="utf-8"><body>${body}</body></html>`], { type: MIME.html }), "HTML representation.")];
+    const text = source === "pdf" ? await extractPdfText(file) : await file.text();
+    return [artifact(name, "html", new Blob([`<!doctype html><html><meta charset="utf-8"><body><pre>${escapeHtml(text)}</pre></body></html>`], { type: MIME.html }), source === "pdf" ? "Selectable PDF text exported as HTML." : "TXT exported as HTML.")];
   }
   if (target === "jpg") {
-    if (source === "pdf") return [artifact(name, "jpg", await renderPdfPage(file), "First PDF page rendered as JPG.")];
-    if (source === "cbz") return [artifact(name, "jpg", await imageToJpg((await cbzImages(file))[0].blob), "First CBZ page exported as JPG.")];
-    if (source === "jpg") return [artifact(name, "jpg", file.slice(0, file.size, MIME.jpg), "JPG copy.")];
-    const text = source === "html" ? cleanHtml(await file.text()) : await file.text();
-    return [artifact(name, "jpg", await textToJpg(text, stem(file.name)), "Text layout rendered as JPG.")];
+    if (source === "pdf") return renderPdfPages(file, name);
+    if (source === "cbz") {
+      const pages = await cbzImages(file);
+      return Promise.all(pages.map(async (page, index) => artifact(`${name}-page-${String(index + 1).padStart(3, "0")}`, "jpg", await imageToJpg(page.blob), `CBZ page ${index + 1} exported as an individual JPG.`)));
+    }
+    return [artifact(name, "jpg", file.slice(0, file.size, MIME.jpg), "JPG copy.")];
   }
   if (target === "pdf") {
     if (source === "jpg") return [await imageToPdf(file, name)];
     if (source === "cbz") return [await cbzToPdf(file, name)];
-    if (source === "pdf") return [artifact(name, "pdf", file.slice(0, file.size, MIME.pdf), "PDF copy.")];
     const text = source === "html" ? cleanHtml(await file.text()) : await file.text();
     return [artifact(name, "pdf", await textToPdf(text, stem(file.name)), "Text laid out as PDF.")];
   }
   if (target === "cbz") {
     if (source === "pdf") return [await pdfToCbz(file, name)];
     const zip = new JSZip();
-    if (source === "jpg") zip.file("page-001.jpg", file);
-    else {
-      const text = source === "html" ? cleanHtml(await file.text()) : await file.text();
-      zip.file("page-001.jpg", await textToJpg(text, stem(file.name)));
-    }
-    return [artifact(name, "cbz", await zip.generateAsync({ type: "blob" }), "Source rendered into a CBZ archive.")];
+    zip.file("page-001.jpg", file);
+    return [artifact(name, "cbz", await zip.generateAsync({ type: "blob" }), "JPG image packaged as a CBZ archive.")];
   }
   throw new Error("This conversion route is not available.");
 }
 
 function cleanOutputName(value: string, fallback: string) {
   return (value || fallback).trim().replace(/\.[^.]+$/, "").replace(/[\\/:*?"<>|]/g, "-").slice(0, 180) || fallback;
-}
-
-function blobDataUrl(blob: Blob) {
-  return new Promise<string>((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result));
-    reader.onerror = () => reject(new Error("The image could not be embedded."));
-    reader.readAsDataURL(blob);
-  });
 }

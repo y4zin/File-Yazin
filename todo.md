@@ -10,3 +10,12 @@
 - [x] Prevent deletion of non-empty library folders to avoid orphaned entries.
 - [x] Disclose browser-rendered conversion routes that are visual or text representations rather than source-fidelity conversions.
 - [x] Require sign-in before output processing so every result is saved in the private library.
+- [x] Replace the browser-native file picker experience with a cohesive in-app selection interface.
+- [x] Localize every settings label, description, hint, and example for English, Arabic, and Chinese.
+- [x] Add clear settings examples explaining text/HTML split line counts and merge-size limits.
+- [x] Remove sign-in and cloud library dependencies; preserve sources, outputs, folders, edits, and ordering locally in the browser.
+- [x] Restrict visible credits to @pro_hg_i and developer Yazin only.
+- [x] Audit PDF/CBZ-to-text and HTML conversion routes, exposing only accurate capabilities.
+- [x] Restrict image conversion to PDF and CBZ sources and download generated images individually rather than as an archive.
+- [x] Add an editable local history area for saved sources and generated outputs.
+- [x] Add persistent move-up and move-down controls for local history ordering inside each folder.

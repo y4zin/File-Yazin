@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { cleanFileName, isSplittableExtension, isSupportedExtension, supportedExtensions } from "../shared/fileRegistry";
+import { availableConversionTargets, canCreateImages } from "../shared/conversionPolicy";
 
 describe("File yazin library contracts", () => {
   it("limits the public registry to the five requested extensions", () => {
@@ -19,5 +20,17 @@ describe("File yazin library contracts", () => {
   it("removes unsafe path characters from saved file names", () => {
     expect(cleanFileName(' report:/final?.pdf ')).toBe("report--final-.pdf");
     expect(cleanFileName("   ", "file-yazin")).toBe("file-yazin");
+  });
+
+  it("shows PDF text extraction but hides unsupported CBZ and text-to-image routes", () => {
+    expect(availableConversionTargets("pdf")).toContain("txt");
+    expect(availableConversionTargets("pdf")).toContain("html");
+    expect(availableConversionTargets("cbz")).not.toContain("txt");
+    expect(availableConversionTargets("cbz")).not.toContain("html");
+    expect(availableConversionTargets("txt")).not.toContain("jpg");
+    expect(availableConversionTargets("html")).not.toContain("jpg");
+    expect(canCreateImages("pdf")).toBe(true);
+    expect(canCreateImages("cbz")).toBe(true);
+    expect(canCreateImages("txt")).toBe(false);
   });
 });
