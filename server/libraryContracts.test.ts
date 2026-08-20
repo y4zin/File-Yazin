@@ -22,15 +22,16 @@ describe("File yazin library contracts", () => {
     expect(cleanFileName("   ", "file-yazin")).toBe("file-yazin");
   });
 
-  it("shows OCR V2 text extraction for PDF and CBZ while hiding text-to-image routes", () => {
-    expect(availableConversionTargets("pdf")).toContain("txt");
-    expect(availableConversionTargets("pdf")).toContain("html");
-    expect(availableConversionTargets("cbz")).toContain("txt");
-    expect(availableConversionTargets("cbz")).toContain("html");
-    expect(availableConversionTargets("txt")).not.toContain("jpg");
-    expect(availableConversionTargets("html")).not.toContain("jpg");
+  it("removes OCR extraction for PDF and CBZ while allowing visual outputs from text", () => {
+    expect(availableConversionTargets("pdf")).not.toContain("txt");
+    expect(availableConversionTargets("pdf")).not.toContain("html");
+    expect(availableConversionTargets("cbz")).not.toContain("txt");
+    expect(availableConversionTargets("cbz")).not.toContain("html");
+    expect(availableConversionTargets("txt")).toEqual(["txt", "html", "pdf", "jpg", "cbz"]);
+    expect(availableConversionTargets("html")).toEqual(["html", "txt", "pdf", "jpg", "cbz"]);
     expect(canCreateImages("pdf")).toBe(true);
     expect(canCreateImages("cbz")).toBe(true);
-    expect(canCreateImages("txt")).toBe(false);
+    expect(canCreateImages("txt")).toBe(true);
+    expect(canCreateImages("html")).toBe(true);
   });
 });
