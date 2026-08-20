@@ -57,6 +57,8 @@ export default function Home() {
   const [projects, setProjects] = useState<LocalProject[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
   const t = language === "de" ? germanComplete : language === "fa" ? persianCopy : copy[language];
+  const runtime = language === "fa" ? { wrongType: "فایل‌های هم‌نوع را برای این عملیات انتخاب کنید.", empty: "پیش از ساخت خروجی یک فایل انتخاب کنید.", unavailable: "فایل منبع این پروژه در دسترس نیست.", failed: "خروجی ساخته نشد." } : { wrongType: "Choose files of the required type for this action.", empty: "Choose a file before creating an output.", unavailable: "This project has no source files available.", failed: "Output could not be created." };
+  if (language === "fa") Object.assign(t, { themeDay: "روشنایی ملایم", themeNight: "شب ملایم", themeHint: "کنتراستی را انتخاب کنید که هنگام کار برایتان راحت‌تر است.", projectTitle: "پروژه‌های نتیجه", projectDescription: "هر نتیجهٔ ذخیره‌شده پروژهٔ خودش را دارد. آن را باز کنید تا خروجی و منبع‌ها را دریافت، ویرایش یا دوباره آماده کنید.", noProjects: "هنوز پروژهٔ نتیجه‌ای وجود ندارد. از فضای کار یکی بسازید.", outputs: "خروجی‌ها", sources: "منبع‌ها", download: "دریافت", copy: "کپی پروژه", inspectSources: "باز کردن منبع‌ها", edit: "ویرایش", delete: "حذف", rerun: "آماده‌سازی دوباره", removeSource: "حذف منبع", cancel: "لغو", projectName: "نام پروژه", sourceList: "فایل‌های منبع", outputList: "فایل‌های نتیجه", created: "ساخته شد" });
   const isRtl = language === "ar" || language === "fa";
   const activeExtension = operation === "merge" ? mergeExtension : operation === "split" ? splitExtension : sourceExtension;
   const targetOptions = availableConversionTargets(sourceExtension);
@@ -74,6 +76,13 @@ export default function Home() {
   const refreshData = useCallback(async () => { const [savedEntries, savedProjects] = await Promise.all([listLocalEntries(), listLocalProjects()]); setEntries(savedEntries); setProjects(savedProjects); }, []);
   useEffect(() => { void refreshData(); }, [refreshData]);
   useEffect(() => { document.documentElement.lang = language; document.documentElement.dir = isRtl ? "rtl" : "ltr"; }, [isRtl, language]);
+  useEffect(() => {
+    if (!settingsOpen) return;
+    const inputs = Array.from(document.querySelectorAll<HTMLInputElement>(".calm-settings input[type='number']"));
+    const normalize = (event: Event) => { const input = event.currentTarget as HTMLInputElement; input.value = englishDigits(input.value); };
+    inputs.forEach((input) => { input.type = "text"; input.lang = "en"; input.dir = "ltr"; input.inputMode = "numeric"; input.classList.add("english-number"); input.addEventListener("input", normalize); });
+    return () => inputs.forEach((input) => input.removeEventListener("input", normalize));
+  }, [settingsOpen]);
   useEffect(() => { if (!targetOptions.includes(targetExtension)) setTargetExtension(targetOptions[0]); }, [sourceExtension, targetExtension, targetOptions]);
 
   const resetQueue = () => { setFiles([]); setNotice(null); if (inputRef.current) inputRef.current.value = ""; };
@@ -82,7 +91,7 @@ export default function Home() {
   const addFiles = async (selection: FileList | File[]) => {
     const selected = Array.from(selection);
     const allowed = selected.filter((file) => getExtension(file.name) === activeExtension);
-    if (allowed.length !== selected.length) toast.error(`Choose .${activeExtension.toUpperCase()} files for this action.`);
+    if (allowed.length !== selected.length) toast.error(runtime.wrongType);
     const limited = operation === "merge" ? allowed : allowed.slice(0, 1);
     if (!limited.length) return;
     const additions = limited.map((file) => ({ id: crypto.randomUUID(), file, extension: activeExtension } satisfies WorkspaceFile));
@@ -93,7 +102,7 @@ export default function Home() {
   const handleDrop = (event: DragEvent<HTMLDivElement>) => { event.preventDefault(); setDragging(false); void addFiles(event.dataTransfer.files); };
 
   const runAction = async () => {
-    if (!files.length) return toast.error("Choose a file before creating an output.");
+    if (!files.length) return toast.error(runtime.empty);
     if (blockMerge) return toast.error(t.useSettings);
     setRunning(true); setNotice(null);
     try {
@@ -107,14 +116,14 @@ export default function Home() {
       const outputIds = await Promise.all(outputs.map(async (output) => (await saveLocalFile({ name: output.name, extension: output.extension, mimeType: output.mimeType, byteSize: output.blob.size, blob: output.blob, sourceOperation: operation === "merge" ? "merged" : operation === "split" ? "split" : "converted", parentId: project.folderEntryId ?? null })).id));
       await updateLocalProject(project.id, { sourceEntryIds: sourceIds, outputEntryIds: outputIds, config: { mergeExtension, splitExtension, sourceExtension, targetExtension, splitTextLines, splitMode, splitPagesPerPart, splitSizeMb } });
       await refreshData(); setNotice(t.saved); toast.success(t.saved);
-    } catch (error) { const message = error instanceof Error ? error.message : "The action could not complete."; setNotice(message); toast.error("Output could not be created"); }
+    } catch (error) { const message = error instanceof Error ? error.message : runtime.failed; setNotice(message); toast.error(runtime.failed); }
     finally { setRunning(false); }
   };
 
   const rerunProject = async (project: LocalProject): Promise<void> => {
     const sources = await getLocalEntries(project.sourceEntryIds);
     const loaded = sources.filter((entry) => entry.blob && entry.extension).map((entry) => ({ id: crypto.randomUUID(), file: new File([entry.blob!], `${entry.name}.${entry.extension}`, { type: entry.mimeType ?? MIME[entry.extension!] }), extension: entry.extension!, entryId: entry.id }));
-    if (!loaded.length) { toast.error("This project has no source files available."); return; }
+    if (!loaded.length) { toast.error(runtime.unavailable); return; }
     setOperation(project.operation as Operation); setFiles(loaded); setOutputName(`${project.name}-new`);
     if (typeof project.config.mergeExtension === "string") setMergeExtension(project.config.mergeExtension as SupportedExtension);
     if (typeof project.config.splitExtension === "string") setSplitExtension(project.config.splitExtension as SupportedExtension);
@@ -145,7 +154,7 @@ export default function Home() {
         <div className="queue-section"><div className="queue-title"><div><p className="section-label">{t.queue}</p><h3>{files.length} {utility.files}</h3></div>{files.length > 0 && <button className="secondary-button" onClick={resetQueue}><X size={15} />{t.clear}</button>}</div>{files.length === 0 ? <div className="empty-queue"><FolderOpen size={18} />{t.chooseFile}</div> : <div className="file-queue">{files.map((item) => { const Icon = typeIcon(item.extension); const recommended = recommendedRemoval?.id === item.id; return <div className={`queue-row ${recommended ? "recommended" : ""}`} key={item.id}><span className="queue-icon"><Icon size={17} /></span><span><b>{item.file.name}</b><small>.{item.extension.toUpperCase()} · {formatBytes(item.file.size)}</small>{recommended && <em>{utility.remove}</em>}</span><button onClick={() => setFiles((current) => current.filter((file) => file.id !== item.id))}><Trash2 size={16} /></button></div>; })}</div>}</div></div></section>
     </main>
     {pickerOpen && <div className="picker-overlay" onMouseDown={() => setPickerOpen(false)}><div className="file-picker-dialog" onMouseDown={(event) => event.stopPropagation()}><button className="close-settings" onClick={() => setPickerOpen(false)}><X size={18} /></button><div className="picker-icon"><Upload size={24} /></div><p className="section-label">{t.chooseFile.toUpperCase()}</p><h2>{t.pickerTitle}</h2><p>{t.pickerText}</p><div className="picker-format"><span>{t.pickerType}</span><b>.{activeExtension.toUpperCase()}</b></div><button className="primary-button picker-action" onClick={openDevicePicker}><FolderOpen size={16} />{t.pickerDevice}</button><button className="picker-cancel" onClick={() => setPickerOpen(false)}>{t.pickerCancel}</button></div></div>}
-    {settingsOpen && <div className="settings-overlay" onMouseDown={() => setSettingsOpen(false)}><aside className="calm-settings" onMouseDown={(event) => event.stopPropagation()}><button className="close-settings" onClick={() => setSettingsOpen(false)}><X size={18} /></button><p className="section-label">{t.settingsEyebrow}</p><h2>{t.settingsTitle}</h2><p>{t.settingsDescription}</p><label><span>{t.max}</span><div className="unit-input"><input type="number" min="1" max="500" value={maxMergeMb} onChange={(event) => setMaxMergeMb(Number(event.target.value))} /><b>MB</b></div><small>{t.mergeHint}</small><em>{t.mergeExample}</em></label><label><span>{utility.mergeMode}</span><OptionPicker value={mergeLimitMode} options={[{ value: "block", label: utility.block }, { value: "allow", label: utility.allow }]} onChange={(value) => setMergeLimitMode(value as "allow" | "block")} /></label><label><span>{t.lines}</span><div className="unit-input"><input type="number" min="1" max="5000" value={splitTextLines} onChange={(event) => setSplitTextLines(Number(event.target.value))} /><b>LINES</b></div><small>{t.linesHint}</small><em>{t.linesExample}</em></label><div className="theme-choice"><div><span>{softDark ? t.themeNight : t.themeDay}</span><small>{t.themeHint}</small></div><button onClick={() => setSoftDark((value) => !value)}>{softDark ? <Moon size={17} /> : <Sun size={17} />}{softDark ? t.themeNight : t.themeDay}</button></div><button className="primary-button save-settings" onClick={() => { saveLocalSettings({ maxMergeMb, mergeLimitMode, splitTextLines, splitPagesPerPart, splitSizeMb, softDark }); setSettingsOpen(false); }}><SlidersHorizontal size={16} />{t.save}</button></aside></div>}
+    {settingsOpen && <div className="settings-overlay" onMouseDown={() => setSettingsOpen(false)}><aside className="calm-settings" onMouseDown={(event) => event.stopPropagation()}><button className="close-settings" onClick={() => setSettingsOpen(false)}><X size={18} /></button><p className="section-label">{t.settingsEyebrow}</p><h2>{t.settingsTitle}</h2><p>{t.settingsDescription}</p><label><span>{t.max}</span><div className="unit-input"><input className="english-number" lang="en" dir="ltr" inputMode="numeric" type="text" value={maxMergeMb} onChange={(event) => setMaxMergeMb(Math.min(500, positiveNumber(event.target.value, maxMergeMb)))} /><b>MB</b></div><small>{t.mergeHint}</small><em>{t.mergeExample}</em></label><label><span>{utility.mergeMode}</span><OptionPicker value={mergeLimitMode} options={[{ value: "block", label: utility.block }, { value: "allow", label: utility.allow }]} onChange={(value) => setMergeLimitMode(value as "allow" | "block")} /><small>{mergeBehaviorHelp}</small></label><label><span>{t.lines}</span><div className="unit-input"><input className="english-number" lang="en" dir="ltr" inputMode="numeric" type="text" value={splitTextLines} onChange={(event) => setSplitTextLines(Math.min(5000, positiveNumber(event.target.value, splitTextLines)))} /><b>LINES</b></div><small>{t.linesHint}</small><em>{t.linesExample}</em></label><div className="theme-choice"><div><span>{softDark ? t.themeNight : t.themeDay}</span><small>{t.themeHint}</small></div><button onClick={() => setSoftDark((value) => !value)}>{softDark ? <Moon size={17} /> : <Sun size={17} />}{softDark ? t.themeNight : t.themeDay}</button></div><button className="primary-button save-settings" onClick={() => { saveLocalSettings({ maxMergeMb, mergeLimitMode, splitTextLines, splitPagesPerPart, splitSizeMb, softDark }); setSettingsOpen(false); }}><SlidersHorizontal size={16} />{t.save}</button></aside></div>}
     <footer className="calm-footer"><a href="https://www.instagram.com/pro_hg_i/" target="_blank" rel="noreferrer">Instagram @pro_hg_i</a><span>{t.developer}</span><span>{t.rights}</span></footer>
   </div>;
 }

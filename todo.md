@@ -41,7 +41,7 @@
 - [x] Run documented route-by-route performance checks for representative JPG, CBZ, PDF, TXT, and HTML conversions.
 - [x] Run and document actual PDF and CBZ conversion checks, including rendered-page routes, before the review checkpoint.
 - [ ] Add clear explanations and practical examples for every split mode, merge-limit behavior, and numeric setting.
-- [ ] Enforce English-digit entry and display for numeric fields across RTL languages.
+- [x] Enforce English-digit entry and display for numeric fields across RTL languages.
 - [ ] Add complete Persian localization with ordered RTL controls and runtime messages.
 - [x] Replace failing TXT-to-PDF output with Unicode-safe rendered pages and add TXT-to-JPG/CBZ visual text conversions.
 - [x] Remove all PDF/CBZ-to-TXT/HTML routes and remove OCR V2 controls and dependencies.
