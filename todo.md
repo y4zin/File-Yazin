@@ -40,11 +40,11 @@
 - [x] Add explicit OCR V2 guidance for PDF and CBZ manga/comic sources and page-range behavior.
 - [x] Run documented route-by-route performance checks for representative JPG, CBZ, PDF, TXT, and HTML conversions.
 - [x] Run and document actual PDF and CBZ conversion checks, including rendered-page routes, before the review checkpoint.
-- [ ] Add clear explanations and practical examples for every split mode, merge-limit behavior, and numeric setting.
+- [x] Add clear explanations and practical examples for every split mode, merge-limit behavior, and numeric setting.
 - [x] Enforce English-digit entry and display for numeric fields across RTL languages.
 - [ ] Add complete Persian localization with ordered RTL controls and runtime messages.
 - [x] Replace failing TXT-to-PDF output with Unicode-safe rendered pages and add TXT-to-JPG/CBZ visual text conversions.
 - [x] Remove all PDF/CBZ-to-TXT/HTML routes and remove OCR V2 controls and dependencies.
 - [x] Add the @pro_hg_i Instagram link with the Yazin development attribution in the product footer.
 - [ ] Remove remaining OCR-specific UI copy and legacy operation logic, then verify no active OCR references remain.
-- [ ] Test the text conversions, Persian runtime selection, numeric fields, and mobile layout before saving a review checkpoint.
+- [x] Test the text conversions, Persian runtime selection, numeric fields, and mobile layout before saving a review checkpoint.
