@@ -29,3 +29,14 @@
 - [x] Persist every result project as a real local folder containing its visible sources and output files.
 - [x] Clone sources into each result folder so rerunning or copying a project cannot move another project's sources.
 - [x] Protect shared files during project deletion and test multi-project source isolation.
+- [x] Add a merge-limit behavior setting: allow with warning or block the merge, plus a red recommended-removal file.
+- [x] Exit the add-file surface automatically after selecting files and show the selected queue immediately.
+- [x] Repair result-folder deletion and normalize action ordering, labels, and icon placement across all supported languages.
+- [x] Add complete German localization and robust RTL/LTR action layouts.
+- [x] Add split modes for half-and-half, page count per part, and approximate file-size per part with clear rules.
+- [x] Add OCR page-range selection, stable per-page progress, time estimate, remaining-page count, and manga/CBZ processing guidance.
+- [x] Profile and optimize all conversion routes to remove unnecessary work and improve one-file latency.
+- [x] Localize all new merge, split, progress, file-count, and action labels in English, Arabic, Chinese, and German.
+- [x] Add explicit OCR V2 guidance for PDF and CBZ manga/comic sources and page-range behavior.
+- [x] Run documented route-by-route performance checks for representative JPG, CBZ, PDF, TXT, and HTML conversions.
+- [x] Run and document actual PDF and CBZ conversion checks, including rendered-page routes, before the review checkpoint.

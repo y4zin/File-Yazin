@@ -66,4 +66,17 @@ describe("local file history", () => {
     expect(afterCopyDeletion.find((entry) => entry.id === source.id)?.parentId).toBe(saved?.folderEntryId);
     expect(afterCopyDeletion.find((entry) => entry.id === output.id)?.parentId).toBe(saved?.folderEntryId);
   });
+
+  it("deletes a result folder together with its unshared visible sources and outputs", async () => {
+    const project = await createLocalProject({ name: "removable", operation: "convert", sourceEntryIds: [], outputEntryIds: [], config: {} });
+    const source = await saveLocalFile({ name: "input", extension: "txt", mimeType: "text/plain", byteSize: 2, blob: new Blob(["in"]), sourceOperation: "imported", parentId: project.folderEntryId });
+    const output = await saveLocalFile({ name: "output", extension: "html", mimeType: "text/html", byteSize: 3, blob: new Blob(["out"]), sourceOperation: "converted", parentId: project.folderEntryId });
+    await updateLocalProject(project.id, { sourceEntryIds: [source.id], outputEntryIds: [output.id] });
+    await deleteLocalProject(project.id);
+    const entries = await listLocalEntries();
+    expect(entries.find((entry) => entry.id === project.folderEntryId)).toBeUndefined();
+    expect(entries.find((entry) => entry.id === source.id)).toBeUndefined();
+    expect(entries.find((entry) => entry.id === output.id)).toBeUndefined();
+    expect(await getLocalProject(project.id)).toBeUndefined();
+  });
 });
