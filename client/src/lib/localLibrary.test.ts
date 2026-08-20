@@ -1,6 +1,6 @@
 import "fake-indexeddb/auto";
 import { beforeEach, describe, expect, it } from "vitest";
-import { createLocalFolder, deleteLocalEntry, listLocalEntries, moveLocalEntry, renameLocalEntry, reorderLocalEntry, saveLocalFile, updateLocalEntryBlob } from "./localLibrary";
+import { createLocalFolder, createLocalProject, deleteLocalEntry, deleteLocalProject, duplicateLocalProject, getLocalProject, listLocalEntries, moveLocalEntry, renameLocalEntry, reorderLocalEntry, saveLocalFile, updateLocalEntryBlob, updateLocalProject } from "./localLibrary";
 
 function clearLocalLibrary() {
   return new Promise<void>((resolve, reject) => {
@@ -40,5 +40,30 @@ describe("local file history", () => {
     await reorderLocalEntry(second.id, "up");
     const names = (await listLocalEntries()).filter((entry) => entry.parentId === null).map((entry) => entry.name);
     expect(names).toEqual(["second", "first"]);
+  });
+
+  it("stores a result project with editable sources, output, settings, and a copy", async () => {
+    const source = await saveLocalFile({ name: "source", extension: "pdf", mimeType: "application/pdf", byteSize: 3, blob: new Blob(["pdf"]), sourceOperation: "imported" });
+    const project = await createLocalProject({ name: "report", operation: "ocr", sourceEntryIds: [source.id], outputEntryIds: [], config: { sourceExtension: "pdf", targetExtension: "txt" } });
+    await moveLocalEntry(source.id, project.folderEntryId ?? null);
+    const output = await saveLocalFile({ name: "report", extension: "txt", mimeType: "text/plain", byteSize: 5, blob: new Blob(["text"]), sourceOperation: "ocr", parentId: project.folderEntryId });
+    await updateLocalProject(project.id, { outputEntryIds: [output.id], ocrConfidence: 71 });
+    const saved = await getLocalProject(project.id);
+    const copy = await duplicateLocalProject(project.id);
+    const entries = await listLocalEntries();
+    expect(saved).toMatchObject({ name: "report", sourceEntryIds: [source.id], outputEntryIds: [output.id], ocrConfidence: 71 });
+    expect(entries.find((entry) => entry.id === saved?.folderEntryId)).toMatchObject({ entryType: "folder", name: "report" });
+    expect(entries.find((entry) => entry.id === source.id)?.parentId).toBe(saved?.folderEntryId);
+    expect(entries.find((entry) => entry.id === output.id)?.parentId).toBe(saved?.folderEntryId);
+    expect(copy).toMatchObject({ name: "report copy", operation: "ocr", ocrConfidence: 71 });
+    expect(copy.folderEntryId).toBeTruthy();
+    expect(copy.sourceEntryIds).not.toContain(source.id);
+    expect(copy.outputEntryIds).not.toContain(output.id);
+    expect(entries.find((entry) => entry.id === copy.sourceEntryIds[0])?.parentId).toBe(copy.folderEntryId);
+    expect(entries.find((entry) => entry.id === copy.outputEntryIds[0])?.parentId).toBe(copy.folderEntryId);
+    await deleteLocalProject(copy.id);
+    const afterCopyDeletion = await listLocalEntries();
+    expect(afterCopyDeletion.find((entry) => entry.id === source.id)?.parentId).toBe(saved?.folderEntryId);
+    expect(afterCopyDeletion.find((entry) => entry.id === output.id)?.parentId).toBe(saved?.folderEntryId);
   });
 });

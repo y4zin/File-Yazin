@@ -19,3 +19,13 @@
 - [x] Restrict image conversion to PDF and CBZ sources and download generated images individually rather than as an archive.
 - [x] Add an editable local history area for saved sources and generated outputs.
 - [x] Add persistent move-up and move-down controls for local history ordering inside each folder.
+- [x] Replace every native select and prompt with a styled internal picker or dialog for formats, languages, folder names, and renaming.
+- [x] Move saved output projects into a dedicated control area and store each result with its source files and operation configuration.
+- [x] Add project actions for duplicate, rename, delete, source inspection, source edits, file removal, and rerunning the operation.
+- [x] Build an OCR V2 browser workflow for PDF/CBZ text extraction, with explicit confidence and handwriting limitations.
+- [x] Add automated tests for project persistence and OCR conversion-policy behavior, then verify the complete responsive UI.
+- [x] Expose the active project as a result folder with a styled folder-name creation and rename flow.
+- [x] Add an in-project TXT/HTML source editor that saves local content changes before rerunning the result.
+- [x] Persist every result project as a real local folder containing its visible sources and output files.
+- [x] Clone sources into each result folder so rerunning or copying a project cannot move another project's sources.
+- [x] Protect shared files during project deletion and test multi-project source isolation.

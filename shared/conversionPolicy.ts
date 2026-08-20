@@ -2,7 +2,7 @@ import type { SupportedExtension } from "./fileRegistry";
 
 const targets: Record<SupportedExtension, SupportedExtension[]> = {
   pdf: ["pdf", "cbz", "jpg", "txt", "html"],
-  cbz: ["cbz", "pdf", "jpg"],
+  cbz: ["cbz", "pdf", "jpg", "txt", "html"],
   jpg: ["jpg", "pdf", "cbz"],
   txt: ["txt", "html", "pdf"],
   html: ["html", "txt", "pdf"],
