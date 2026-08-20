@@ -48,4 +48,7 @@
 - [x] Add the @pro_hg_i Instagram link with the Yazin development attribution in the product footer.
 - [x] Remove remaining OCR-specific UI copy and legacy operation logic, then verify no active OCR references remain.
 - [x] Complete the final source-copy audit, run the full verification suite, and save the delivery checkpoint.
+- [x] Fix CBZ-to-image conversion to accept all supported archive image encodings and report invalid entries clearly.
+- [x] Fix download failures and prevent success messages when file production or downloading fails.
+- [x] Add regression tests for CBZ image extraction and operation success/failure state handling.
 - [x] Test the text conversions, Persian runtime selection, numeric fields, and mobile layout before saving a review checkpoint.

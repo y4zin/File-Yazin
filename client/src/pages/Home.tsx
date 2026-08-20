@@ -57,7 +57,7 @@ export default function Home() {
   const [projects, setProjects] = useState<LocalProject[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
   const t = language === "de" ? germanComplete : language === "fa" ? persianCopy : copy[language];
-  const runtime = language === "fa" ? { wrongType: "فایل‌های هم‌نوع را برای این عملیات انتخاب کنید.", empty: "پیش از ساخت خروجی یک فایل انتخاب کنید.", unavailable: "فایل منبع این پروژه در دسترس نیست.", failed: "خروجی ساخته نشد." } : { wrongType: "Choose files of the required type for this action.", empty: "Choose a file before creating an output.", unavailable: "This project has no source files available.", failed: "Output could not be created." };
+  const runtime = language === "ar" ? { wrongType: "اختر ملفات بنفس الصيغة المطلوبة لهذه العملية.", empty: "اختر ملفًا قبل إنشاء المخرج.", unavailable: "ملفات مصدر هذا المشروع غير متاحة.", failed: "تعذر إنشاء المخرج." } : language === "fa" ? { wrongType: "فایل‌های هم‌نوع را برای این عملیات انتخاب کنید.", empty: "پیش از ساخت خروجی یک فایل انتخاب کنید.", unavailable: "فایل منبع این پروژه در دسترس نیست.", failed: "خروجی ساخته نشد." } : { wrongType: "Choose files of the required type for this action.", empty: "Choose a file before creating an output.", unavailable: "This project has no source files available.", failed: "Output could not be created." };
   if (language === "fa") Object.assign(t, { themeDay: "روشنایی ملایم", themeNight: "شب ملایم", themeHint: "کنتراستی را انتخاب کنید که هنگام کار برایتان راحت‌تر است.", projectTitle: "پروژه‌های نتیجه", projectDescription: "هر نتیجهٔ ذخیره‌شده پروژهٔ خودش را دارد. آن را باز کنید تا خروجی و منبع‌ها را دریافت، ویرایش یا دوباره آماده کنید.", noProjects: "هنوز پروژهٔ نتیجه‌ای وجود ندارد. از فضای کار یکی بسازید.", outputs: "خروجی‌ها", sources: "منبع‌ها", download: "دریافت", copy: "کپی پروژه", inspectSources: "باز کردن منبع‌ها", edit: "ویرایش", delete: "حذف", rerun: "آماده‌سازی دوباره", removeSource: "حذف منبع", cancel: "لغو", projectName: "نام پروژه", sourceList: "فایل‌های منبع", outputList: "فایل‌های نتیجه", created: "ساخته شد" });
   const isRtl = language === "ar" || language === "fa";
   const activeExtension = operation === "merge" ? mergeExtension : operation === "split" ? splitExtension : sourceExtension;
@@ -104,7 +104,7 @@ export default function Home() {
   const runAction = async () => {
     if (!files.length) return toast.error(runtime.empty);
     if (blockMerge) return toast.error(t.useSettings);
-    setRunning(true); setNotice(null);
+    toast.dismiss(); setRunning(true); setNotice(null);
     try {
       const project = await createLocalProject({ name: outputName, operation: operation === "merge" ? "merge" : operation === "split" ? "split" : "convert", sourceEntryIds: [], outputEntryIds: [], config: { mergeExtension, splitExtension, sourceExtension, targetExtension, splitTextLines } });
       const sourceIds = await Promise.all(files.map(async (item) => (await saveLocalFile({ name: baseName(item.file.name), extension: item.extension, mimeType: item.file.type || MIME[item.extension], byteSize: item.file.size, blob: item.file, sourceOperation: "imported", parentId: project.folderEntryId ?? null })).id));
@@ -112,11 +112,11 @@ export default function Home() {
       if (operation === "merge") outputs = await mergeFiles(files.map((item) => item.file), mergeExtension, outputName);
       else if (operation === "split") outputs = await splitFile(files[0].file, splitExtension, outputName, { mode: splitMode, textLines: splitTextLines, pagesPerPart: splitPagesPerPart, sizeMb: splitSizeMb });
       else outputs = await convertFile(files[0].file, sourceExtension, targetExtension, outputName);
-      outputs.forEach(downloadArtifact);
       const outputIds = await Promise.all(outputs.map(async (output) => (await saveLocalFile({ name: output.name, extension: output.extension, mimeType: output.mimeType, byteSize: output.blob.size, blob: output.blob, sourceOperation: operation === "merge" ? "merged" : operation === "split" ? "split" : "converted", parentId: project.folderEntryId ?? null })).id));
       await updateLocalProject(project.id, { sourceEntryIds: sourceIds, outputEntryIds: outputIds, config: { mergeExtension, splitExtension, sourceExtension, targetExtension, splitTextLines, splitMode, splitPagesPerPart, splitSizeMb } });
+      outputs.forEach(downloadArtifact);
       await refreshData(); setNotice(t.saved); toast.success(t.saved);
-    } catch (error) { const message = error instanceof Error ? error.message : runtime.failed; setNotice(message); toast.error(runtime.failed); }
+    } catch (error) { const message = error instanceof Error && error.message ? error.message : runtime.failed; setNotice(message); toast.error(message); }
     finally { setRunning(false); }
   };
 
