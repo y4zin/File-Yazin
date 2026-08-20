@@ -62,3 +62,7 @@ The wordmark pairs a geometric “File” with an italicized “yazin” tail, a
 - Desktop layouts keep a visible left control rail, with the active operation traced by a vertical Signal Lilac indicator. Horizontal operation controls remain secondary.
 - The File yazin wordmark and three-sheet mineral mark appear in the primary product header as well as the control rail.
 - Signal Lilac is reserved for active navigation, primary action, progress confirmation, and key numerals; it is not used as ambient decorative glow.
+
+## Revision style decision
+
+The revised workspace prioritizes the user's request for a **simple, spacious, psychologically calm** interface over the earlier high-density console direction. It uses a soft daylight default with restrained violet action cues, generous margins, low-contrast borders, a clear task sequence, and an optional evening theme. The product mark and technical labels remain, while heavy rail navigation and dense instrument styling are intentionally avoided to prevent the cramped feeling the user identified.
