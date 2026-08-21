@@ -56,3 +56,4 @@
 - [x] Save a pre-publication checkpoint and wait for the user's explicit GitHub repository name, description, visibility, and publication approval.
 - [x] Test the text conversions, Persian runtime selection, numeric fields, and mobile layout before saving a review checkpoint.
 - [x] Create the public GitHub repository file-yazin and publish the approved pre-publication version.
+- [ ] Configure and publish the static browser workspace through GitHub Pages, then provide its public URL.
