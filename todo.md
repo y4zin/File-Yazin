@@ -57,3 +57,4 @@
 - [x] Test the text conversions, Persian runtime selection, numeric fields, and mobile layout before saving a review checkpoint.
 - [x] Create the public GitHub repository file-yazin and publish the approved pre-publication version.
 - [x] Configure and publish the static browser workspace through GitHub Pages, then provide its public URL.
+- [x] Fix GitHub Pages serving README instead of the built File yazin web application, then verify the public URL.
