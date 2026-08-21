@@ -53,5 +53,6 @@
 - [x] Add regression tests for CBZ image extraction and operation success/failure state handling.
 - [x] Perform a rapid pre-publication audit for build, core conversion paths, downloads, and public deployment blockers.
 - [x] Perform a deep audit for edge cases, mobile UX, accessibility, resilience, and public-repository hygiene; fix verified issues.
-- [ ] Save a pre-publication checkpoint and wait for the user's explicit GitHub repository name, description, visibility, and publication approval.
+- [x] Save a pre-publication checkpoint and wait for the user's explicit GitHub repository name, description, visibility, and publication approval.
 - [x] Test the text conversions, Persian runtime selection, numeric fields, and mobile layout before saving a review checkpoint.
+- [x] Create the public GitHub repository file-yazin and publish the approved pre-publication version.
